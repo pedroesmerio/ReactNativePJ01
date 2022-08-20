@@ -6,8 +6,13 @@ import { styles } from "./style";
 export function Home() {
 
   function handleParticipantAdd() {
-    console.log("Você clicou no botão de Adicionar!");
+    console.log(`Você clicou em adicionar participante!`);
   }
+
+  function handleParticipantRemove(name: string) {
+    console.log(`Você clicou em remover o participante: ${name}`);
+  }
+
 
   return (
     <View style={styles.container}>
@@ -26,14 +31,18 @@ export function Home() {
           placeholderTextColor="#6B6B6B"
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleParticipantAdd}>
+        <TouchableOpacity style={styles.button}
+          onPress={handleParticipantAdd}>
           <Text style={styles.buttonText}>
             +
           </Text>
         </TouchableOpacity>
       </View>
 
-      <Participant />
+      <Participant name={"Pedro Henrique"} onRemove={() => handleParticipantRemove("Pedro Esmerio")} />
+      <Participant name={"Maria Luiza"} onRemove={() => handleParticipantRemove("Maria Luiza")} />
+      <Participant name={"Hinnara Maria"} onRemove={() => handleParticipantRemove("Hinnara Maria")} />
+      <Participant name={"Genival Luna"} onRemove={() => handleParticipantRemove("Genival Luna")} />
     </View>
   )
 }
