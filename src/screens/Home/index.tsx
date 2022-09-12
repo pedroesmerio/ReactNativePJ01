@@ -1,37 +1,74 @@
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
+// import { GlobalContext } from "../../contexts/GlobalContext";
 
 import { Alert, FlatList, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Participant } from "../components/Participant";
+import { Participant, ParticipantProps } from "../../components/Participant";
+
+import { getRealm } from "../../database/realm";
+import uuid from 'react-native-uuid';
 
 import { styles } from "./style";
 
-export function Home() {
-  const [participants, setParticipants] = useState<string[]>([])
 
+
+export function Home() {
+  // Todo: Mover a lógica de execução das Query para o GlobalContext e executar elas por aqui 
+  //
+  // const {
+  //   addParticipant,
+  //   removeParticipant,
+  //   fetchParticipant
+  // } = useContext(GlobalContext);
+
+  // Array de participantes
+  const [participants, setParticipants] = useState<ParticipantProps[]>([])
+  // State guardando o nome do participant que será enviado no input
   const [nameParticipant, setNamePaticipant] = useState('')
 
-  function handleParticipantAdd() {
-    if (participants.includes(nameParticipant)) {
-      return Alert.alert("Participante existe", "Já existe um participante na lista com esse nome.");
+  // função que adiciona participante ao banco de dados
+  async function handleParticipantAdd() {
+    const realm = await getRealm();
+
+    try {
+      realm.write(() => {
+        const created = realm.create("Participant", {
+          _id: uuid.v4(),
+          name: nameParticipant,
+          created_at: new Date(),
+        });
+        console.log("Participante cadastrado como ==>", created);
+        setNamePaticipant('')
+        fetchParticipants();
+      });
+      Alert.alert("Sucesso", "Participante cadastro com sucesso!");
+    } catch (error) {
+      console.log(error)
+      Alert.alert("Falhou", "Não foi possível cadastrar participante!");
     }
-
-    setParticipants(prevState => [...prevState, nameParticipant])
-    setNamePaticipant('')
   }
 
-  function handleParticipantRemove(name: string) {
+  // função que puxa os dados do banco
+  async function fetchParticipants() {
+    const realm = await getRealm();
 
-    Alert.alert("Remover", `Remover o participante ${name}?`, [
-      {
-        text: 'Sim',
-        onPress: () => setParticipants(prevState => prevState.filter(participant => participant !== name))
-      },
-      {
-        text: 'Não',
-        style: 'cancel'
-      }
-    ])
+    try {
+      const response = realm
+        .objects<ParticipantProps[]>("Participant")
+        .sorted("created_at", true) //true diz que o revesed = true
+        .toJSON();
+      setParticipants(response);
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Erro", "Não foi possível carregar os participantes");
+    } finally {
+      realm.close();
+    }
   }
+
+  //Puxa os os participantes quando o component é renderizado pela primeira vez
+  useEffect(() => {
+    fetchParticipants();
+  }, [])
 
 
   return (
@@ -63,12 +100,11 @@ export function Home() {
 
       <FlatList
         data={participants}
-        keyExtractor={item => item}
+        keyExtractor={item => item._id}
         renderItem={({ item }) => (
           <Participant
-            key={item}
-            name={item}
-            onRemove={() => handleParticipantRemove(item)}
+            key={item._id}
+            data={item}
           />
         )}
         showsVerticalScrollIndicator={false}
@@ -76,7 +112,6 @@ export function Home() {
           <Text style={styles.listEmptyText}>
             Ninguém chegou no evento ainda? Adicione participantes a sua lista de presença
           </Text>
-
         )}
       />
     </View>
